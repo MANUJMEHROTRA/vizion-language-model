@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A notebook-first, visual guide to vision-language models, pretraining, fine-tuning, small models, and SO-101 robotics.">
+  <title>Vision-Language Models — A Visual Field Guide</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #172033;
+      --muted: #536179;
+      --paper: #f6f8fc;
+      --card: #fff;
+      --line: #dce3ef;
+      --blue: #315efb;
+      --cyan: #bfeefa;
+      --violet: #e6dcff;
+      --green: #d8f4df;
+      --orange: #ffe3bf;
+      --shadow: 0 14px 40px rgba(27, 48, 91, .08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: #2449cf; }
+    .wrap { width: min(1120px, calc(100% - 36px)); margin-inline: auto; }
+    header {
+      padding: 72px 0 52px;
+      color: white;
+      background: radial-gradient(circle at 80% 10%, #577dff 0, transparent 32%), linear-gradient(135deg, #111b39, #263c77);
+    }
+    .eyebrow { color: #b9caff; text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; font-weight: 800; }
+    h1 { margin: 10px 0; max-width: 850px; font-size: clamp(2.5rem, 7vw, 5rem); line-height: 1.03; letter-spacing: -.045em; }
+    header p { max-width: 740px; color: #e1e8ff; font-size: 1.12rem; }
+    .chips { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 24px; }
+    .chip { border: 1px solid #94a8f4; border-radius: 99px; padding: 5px 12px; color: white; font-size: .85rem; }
+    nav { position: sticky; top: 0; z-index: 3; background: rgba(255,255,255,.94); border-bottom: 1px solid var(--line); backdrop-filter: blur(10px); }
+    nav .wrap { display: flex; gap: 18px; overflow-x: auto; padding: 11px 0; white-space: nowrap; }
+    nav a { color: #35415b; text-decoration: none; font-size: .88rem; font-weight: 700; }
+    main { padding: 32px 0 70px; }
+    section { scroll-margin-top: 70px; margin: 26px 0; }
+    h2 { margin: 0 0 14px; font-size: clamp(1.65rem, 4vw, 2.45rem); line-height: 1.18; letter-spacing: -.025em; }
+    h3 { margin: 0 0 8px; font-size: 1.13rem; }
+    p { margin: 8px 0 14px; color: var(--muted); }
+    .lead { max-width: 800px; font-size: 1.12rem; }
+    .card { padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: var(--shadow); }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-6 { grid-column: span 6; }
+    .span-4 { grid-column: span 4; }
+    .flow { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 28px; align-items: stretch; }
+    .node { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 112px; padding: 16px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .node:not(:last-child)::after { content: "→"; position: absolute; right: -24px; top: 38%; color: var(--blue); font-size: 1.35rem; font-weight: 900; }
+    .node strong { color: var(--ink); }
+    .node small { margin-top: 4px; color: var(--muted); }
+    .vision { background: linear-gradient(145deg, #e4f9ff, #fff); }
+    .language { background: linear-gradient(145deg, #eee9ff, #fff); }
+    .fusion { background: linear-gradient(145deg, #e5f7e7, #fff); }
+    .output { background: linear-gradient(145deg, #fff0dc, #fff); }
+    .kicker { color: var(--blue); font-size: .76rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+    .callout { border-left: 4px solid var(--blue); padding: 12px 16px; border-radius: 0 10px 10px 0; background: #edf1ff; color: #29385f; }
+    .callout.warn { border-color: #d47a00; background: #fff5e4; }
+    .callout.safe { border-color: #168650; background: #eaf8ef; }
+    .math { overflow-x: auto; margin: 12px 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #f8faff; color: #18274c; font: 500 .96rem/1.8 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .math-demo { margin-top: 16px; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: white; }
+    .math-demo-head { padding: 18px 20px 8px; background: linear-gradient(120deg, #f1f5ff, #f8fbff); }
+    .math-demo-body { padding: 8px 20px 20px; }
+    .score-table { width: 100%; min-width: 560px; border-collapse: collapse; }
+    .score-table th, .score-table td { padding: 9px 8px; border-bottom: 1px solid var(--line); text-align: left; }
+    .score-table th { background: transparent; }
+    .score-table code { color: #273964; font-size: .88rem; }
+    .weight-track { min-width: 110px; height: 10px; border-radius: 99px; background: #e9edf6; }
+    .weight-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #4c7dff, #8a5cff); transition: width .15s ease; }
+    .result-box { padding: 13px 15px; border-radius: 12px; background: #f1f5ff; color: #24355f; }
+    .result-box strong { color: var(--ink); }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 14px; }
+    .gradient-row { display: flex; align-items: center; gap: 9px; margin: 8px 0; color: var(--muted); font-size: .9rem; }
+    .gradient-row code { min-width: 85px; color: #273964; }
+    .controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin: 12px 0 4px; }
+    label { color: var(--ink); font-weight: 700; }
+    input[type="range"] { width: min(340px, 62vw); accent-color: var(--blue); vertical-align: middle; }
+    .patch-demo { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 24px; margin-top: 18px; }
+    .image-grid { display: grid; aspect-ratio: 1; overflow: hidden; border: 2px solid #23365e; border-radius: 9px; background: #e9f1fb; }
+    .image-grid i { display: block; border: 1px solid rgba(34, 55, 90, .35); background: linear-gradient(135deg, #b8e8fa, #cbbaff); }
+    .stat { font-size: 1.8rem; color: var(--blue); font-weight: 850; }
+    .bar { height: 12px; overflow: hidden; border-radius: 99px; background: #e8ecf5; }
+    .bar span { display: block; height: 100%; width: 50%; border-radius: inherit; background: linear-gradient(90deg, #5687ff, #875cff); transition: width .2s ease; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 680px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { color: #253355; background: #f5f7fb; font-size: .88rem; }
+    td { color: var(--muted); }
+    .stage { display: grid; grid-template-columns: 55px 1fr; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--line); }
+    .stage:last-child { border-bottom: 0; }
+    .num { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: #fff; background: var(--blue); font-weight: 850; }
+    .stage p { margin: 2px 0; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+    button { border: 1px solid var(--line); border-radius: 99px; padding: 8px 14px; color: #2a3856; background: #fff; font: inherit; font-size: .88rem; font-weight: 750; cursor: pointer; }
+    button[aria-pressed="true"] { color: #fff; border-color: var(--blue); background: var(--blue); }
+    .model-detail { min-height: 90px; }
+    .model-detail strong { color: var(--ink); }
+    .pill { display: inline-block; margin: 3px 5px 3px 0; padding: 3px 9px; border-radius: 99px; color: #304274; background: #eaf0ff; font-size: .8rem; font-weight: 700; }
+    .steps { counter-reset: item; list-style: none; padding: 0; }
+    .steps li { counter-increment: item; position: relative; padding: 4px 0 18px 44px; color: var(--muted); }
+    .steps li::before { content: counter(item); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: white; background: #263f87; font-weight: 800; }
+    footer { padding: 34px 0; color: #dce5ff; background: #152142; }
+    footer p, footer a { color: #dce5ff; }
+    footer li { margin: 7px 0; }
+    .fine { font-size: .88rem; }
+    @media (max-width: 780px) {
+      .span-8, .span-6, .span-4 { grid-column: span 12; }
+      .flow { grid-template-columns: 1fr; gap: 10px; }
+      .node { min-height: 86px; }
+      .node:not(:last-child)::after { content: "↓"; right: 50%; top: auto; bottom: -21px; z-index: 1; }
+      .patch-demo { grid-template-columns: 120px 1fr; gap: 15px; }
+      .two-col { grid-template-columns: 1fr; }
+      .card { padding: 18px; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="eyebrow">A visual field guide · notebook-first curriculum</div>
+      <h1>How vision and language become one model</h1>
+      <p>A practical guide to the mechanics of vision-language models, how they are pretrained and adapted, what “small” means in 2026, and how to think about an SO-101 robot without confusing a VLM with a safe controller.</p>
+      <div class="chips">
+        <span class="chip">PyTorch from scratch</span><span class="chip">Images + text</span><span class="chip">Pretraining → adaptation</span><span class="chip">SO-101 / VLA</span>
+      </div>
+    </div>
+  </header>
+  <nav aria-label="Page sections"><div class="wrap">
+    <a href="#definition">Definition</a><a href="#anatomy">Anatomy</a><a href="#math-deep-dive">Attention &amp; loss</a><a href="#patches">Patch toy</a><a href="#training">Training</a><a href="#adaptation">LoRA</a><a href="#landscape">Models</a><a href="#robotics">SO-101</a><a href="#curriculum">Notebooks</a><a href="#sources">Sources</a>
+  </div></nav>
+  <main class="wrap">
+    <section id="definition">
+      <div class="kicker">Start with the distinction</div>
+      <h2>VLM is not the same as VLA</h2>
+      <p class="lead">A <strong>vision-language model (VLM)</strong> takes visual input and text and usually produces text. A <strong>vision-language-action model (VLA)</strong> also conditions on robot state and predicts an action representation. A chatty visual model is not automatically a robot policy.</p>
+      <div class="grid">
+        <div class="card span-6">
+          <h3>VLM: understand and describe</h3>
+          <div class="math">image + question → visual features + text tokens → answer tokens</div>
+          <p>Examples: image question answering, OCR, chart reading, captioning, video summarization, visual grounding.</p>
+        </div>
+        <div class="card span-6">
+          <h3>VLA: perceive and act</h3>
+          <div class="math">images + instruction + robot state → policy → bounded action(s)</div>
+          <p>Requires robot demonstrations or interaction, embodiment-specific action semantics, feedback, evaluation, and safety controls.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="anatomy">
+      <div class="kicker">The data path</div>
+      <h2>Inside a typical image-conditioned decoder</h2>
+      <div class="card">
+        <div class="flow" aria-label="Model data flow">
+          <div class="node vision"><strong>1. Image</strong><small>RGB pixels, resize/crop/tiles</small></div>
+          <div class="node vision"><strong>2. Vision encoder</strong><small>Patch features with positions</small></div>
+          <div class="node fusion"><strong>3. Project / fuse</strong><small>Visual vectors meet LM width</small></div>
+          <div class="node language"><strong>4. Text decoder</strong><small>Causal self-attention + image access</small></div>
+          <div class="node output"><strong>5. Output tokens</strong><small>Next-token probabilities → answer</small></div>
+        </div>
+        <div class="math">patches: [B, C, H, W] → [B, N, D] · words: [B, T] → [B, T, D] · logits: [B, T, vocabulary]</div>
+        <p>Architectures vary. Some insert image embeddings directly into a unified token stream; others use a resampler/projector or decoder cross-attention. High resolution increases visual tokens and often costs quadratic attention compute unless architecture or attention implementation changes that trade-off.</p>
+      </div>
+    </section>
+
+    <section id="math-deep-dive">
+      <div class="kicker">Under the hood · notebook 09</div>
+      <h2>Embeddings, attention scores, and losses—step by step</h2>
+      <p class="lead">Tokens are learned vectors, attention is a learned compatibility-and-mixing operation, and losses turn predictions into gradients. The full runnable derivations are in <a href="notebooks/09_embeddings_attention_and_losses.ipynb">Notebook 09: embeddings, attention &amp; losses</a>.</p>
+      <div class="grid">
+        <div class="card span-6">
+          <h3>From token ID to contextual representation</h3>
+          <div class="math">E ∈ ℝ^(vocab × d)<br>xₜ = E[tokenₜ] + positionₜ<br>Q = XWQ, K = XWK, V = XWV</div>
+          <p>The token ID is an address into an embedding table. Its selected row is learned from downstream gradients. Positional information distinguishes order. Attention and MLP layers transform this initial vector; the same token embedding can therefore acquire different contextual representations in different sentences.</p>
+          <p>Visual features follow a parallel path: vision encoder → feature tokens → learned projector to language width. Matching vector widths allows fusion, but joint training objectives—not width alone—teach compatible visual and textual meanings.</p>
+        </div>
+        <div class="card span-6">
+          <h3>How a score becomes an attention read</h3>
+          <div class="math">S = QKᵀ / √dₖ<br>A = softmax(S + mask, over keys)<br>C = AV</div>
+          <p>Each query-key dot product is a learned compatibility score. Divide by √dₖ to control score scale as head width grows. Softmax normalizes each query row across available key positions. A causal/padding mask blocks forbidden keys before softmax. The resulting weights mix value vectors; cross-attention lets text queries read image keys and values.</p>
+          <p><strong>Shapes:</strong> self-attention scores `[B, heads, T, T]`; text-to-image cross-attention scores `[B, heads, T_text, N_image]`.</p>
+        </div>
+        <div class="card span-6">
+          <h3>Next-token cross-entropy</h3>
+          <div class="math">pⱼ = softmax(logits)ⱼ<br>CE = −log(p_correct)<br>∂CE/∂logitⱼ = pⱼ − 1[j = correct]</div>
+          <p>The logit at position t predicts token t+1. Teacher forcing provides true preceding tokens, while the causal mask hides future tokens. Average loss only over intended targets: padding and often prompt tokens use an ignore label such as `-100`. Inference instead conditions on generated tokens.</p>
+        </div>
+        <div class="card span-6">
+          <h3>Contrastive alignment and other losses</h3>
+          <div class="math">sᵢⱼ = normalize(imageᵢ) · normalize(textⱼ) / τ<br>L = ½ [CE(s, diagonal) + CE(sᵀ, diagonal)]</div>
+          <p>Contrastive learning treats paired image/text examples as positives and other batch members as negatives. Duplicate captions can become false negatives. Matching classifiers, grounding/box losses, caption generation, and instruction tuning supervise different behaviors; a recipe may mix them with weights or train in stages.</p>
+        </div>
+        <div class="card span-12">
+          <div class="callout">A low loss is not proof of correct visual grounding or safe robot behavior. Check image dependence, held-out generalization, task slices, per-example failures, and (for robotics) closed-loop success and safety metrics.</div>
+        </div>
+      </div>
+      <div class="math-demo" aria-labelledby="attentionToyTitle">
+        <div class="math-demo-head">
+          <div class="kicker">Interactive calculation 1</div>
+          <h3 id="attentionToyTitle">A text query reads three image patches</h3>
+          <p>Imagine the text token query is “where?” The three image-patch keys are deliberately tiny 2-D examples. Real models learn these vectors; these hand-set values make the arithmetic inspectable.</p>
+        </div>
+        <div class="math-demo-body">
+          <div class="math">q = [1, 0] &nbsp;·&nbsp; k₁ = [1, 0], k₂ = [0, 1], k₃ = [−1, 0]<br>raw scoreᵢ = q · kᵢ &nbsp;→&nbsp; scaled scoreᵢ = (q · kᵢ) / √dₖ, with dₖ = 2<br>weightᵢ = exp(scoreᵢ) / Σⱼ exp(scoreⱼ) &nbsp;·&nbsp; context = Σᵢ weightᵢ vᵢ</div>
+          <div class="controls">
+            <label for="attentionSharpness">Score multiplier (inverse temperature):
+              <input id="attentionSharpness" type="range" min="0.5" max="4" step="0.5" value="1">
+              <output id="sharpnessValue" for="attentionSharpness">1.0×</output>
+            </label>
+            <span class="fine">Higher multiplier sharpens the softmax; it does not change the vector dot products.</span>
+          </div>
+          <div class="table-wrap">
+            <table class="score-table">
+              <thead><tr><th>Image key</th><th>q · k</th><th>scaled score × multiplier</th><th>softmax weight</th><th>value v</th></tr></thead>
+              <tbody id="attentionRows"></tbody>
+            </table>
+          </div>
+          <div class="result-box" style="margin-top:12px">
+            Weighted visual read: <strong id="attentionContext">—</strong>. Each query's weights sum to <strong id="attentionWeightSum">—</strong>; this weighted sum becomes context for the text stream.
+          </div>
+          <p class="fine">This is cross-attention: the query comes from text and keys/values from image patches, so score shape is `[text positions, image patches]`. A causal mask is for preventing a text position from reading future text; it is not generally the mask used to hide image patches from text.</p>
+        </div>
+      </div>
+      <div class="math-demo" aria-labelledby="lossToyTitle">
+        <div class="math-demo-head">
+          <div class="kicker">Interactive calculation 2</div>
+          <h3 id="lossToyTitle">From next-token probability to loss and gradient</h3>
+          <p>For a correct next token with probability p, cross-entropy is −log(p). For softmax logits, the derivative for the correct logit is p−1; each incorrect class receives its predicted probability. Gradient descent raises the correct logit and lowers alternatives.</p>
+        </div>
+        <div class="math-demo-body">
+          <div class="math">L = −log(p_correct) &nbsp;·&nbsp; ∂L/∂zⱼ = pⱼ − 1[j = correct]</div>
+          <div class="controls">
+            <label for="targetProbability">Correct-token probability:
+              <input id="targetProbability" type="range" min="0.05" max="0.95" step="0.01" value="0.25">
+              <output id="targetProbabilityValue" for="targetProbability">0.25</output>
+            </label>
+          </div>
+          <div class="two-col">
+            <div class="result-box">Token cross-entropy: <strong id="tokenLossValue">—</strong><br><span class="fine">Lower is better only for this target under this example.</span></div>
+            <div class="result-box">Gradient on correct logit: <strong id="correctGradientValue">—</strong><br><span class="fine">Negative gradient means gradient descent increases that logit.</span></div>
+          </div>
+          <div id="gradientRows" style="margin-top:10px" aria-live="polite"></div>
+          <p class="fine">For this illustration, the remaining probability is divided equally among three incorrect tokens. Real models distribute it over a much larger vocabulary. During training, the loss is averaged only over valid target tokens; padding and often prompt tokens are ignored.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="patches">
+      <div class="kicker">An interactive toy</div>
+      <h2>Why patch count matters</h2>
+      <div class="card">
+        <p>For a square image of side H and square patch side P, the patch count is N = (H/P)². Standard full self-attention has a rough sequence-length term proportional to N². Real vision encoders use positional information and may use crops, windows, or other optimizations; this control is only a teaching aid.</p>
+        <div class="controls">
+          <label for="patchRange">Patch side P: <span id="patchValue">16</span> pixels</label>
+          <input id="patchRange" type="range" min="8" max="32" step="8" value="16">
+          <span>Image: 224 × 224</span>
+        </div>
+        <div class="patch-demo">
+          <div id="patchGrid" class="image-grid" aria-label="Image divided into patches"></div>
+          <div>
+            <div><span id="patchCount" class="stat">196</span> visual patches</div>
+            <p>Attention pairwise score terms: <strong id="pairCount">38,416</strong> (proportional, one head/layer)</p>
+            <div class="bar" aria-label="Relative attention work"><span id="workBar"></span></div>
+            <p class="fine">Increasing image resolution or decreasing patch size can reveal detail (e.g. small text), but consumes more compute and context.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="training">
+      <div class="kicker">How it learns</div>
+      <h2>Pretraining is a sequence of data and objectives</h2>
+      <div class="grid">
+        <div class="card span-8">
+          <div class="stage"><div class="num">1</div><div><h3>Curate paired/interleaved examples</h3><p>Rights, provenance, deduplication, data quality, caption quality, language balance, privacy and split boundaries are foundational.</p></div></div>
+          <div class="stage"><div class="num">2</div><div><h3>Align image and language representations</h3><p>Contrastive losses (CLIP-style) pull matching image/text embeddings together and mismatches apart. This supports retrieval but does not, by itself, teach a generative assistant.</p></div></div>
+          <div class="stage"><div class="num">3</div><div><h3>Train a generator to predict text</h3><p>Given image features and preceding tokens, predict the next target token. Shift labels by one; mask padding and any prompt tokens that should not be supervised.</p></div></div>
+          <div class="stage"><div class="num">4</div><div><h3>Instruction tune and evaluate</h3><p>Use curated question-answer/instruction examples, then test OCR, grounding, reasoning, robustness, latency, and failure cases separately.</p></div></div>
+        </div>
+        <div class="card span-4">
+          <h3>Contrastive objective</h3>
+          <div class="math">Sᵢⱼ = imageᵢ · textⱼ / τ<br>loss = (CE(S, diagonal) + CE(Sᵀ, diagonal)) / 2</div>
+          <h3>Autoregressive objective</h3>
+          <div class="math">L = − Σₜ log p(yₜ | y&lt;ₜ, image)</div>
+          <p class="fine">Loss is not a quality score. Held-out behavior and data integrity are essential.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="adaptation">
+      <div class="kicker">Adapt without starting over</div>
+      <h2>Fine-tuning, freezing, and LoRA</h2>
+      <div class="grid">
+        <div class="card span-6">
+          <h3>Full fine-tuning</h3><p>Update all or most weights on task data. Flexible and potentially data-hungry; higher training/optimizer memory and greater risk of forgetting prior capabilities.</p>
+          <h3>Partial fine-tuning</h3><p>Freeze vision or language modules and train a projector/head or selected blocks. Cheaper, but a frozen representation may not adapt enough.</p>
+        </div>
+        <div class="card span-6">
+          <h3>LoRA: a low-rank update</h3>
+          <div class="math">W′ = W + ΔW<br>ΔW = (α / r) · B · A<br>rank(ΔW) ≤ r</div>
+          <p>Freeze base W; train small matrices A and B. The update adds few trainable parameters. LoRA is an adaptation method, not quantization; serving overhead depends on whether updates are merged and on the runtime.</p>
+        </div>
+      </div>
+      <p class="callout">Study the complete manual PyTorch adapter and optimizer loop in Notebook 05. No high-level training wrapper is used in the curriculum.</p>
+    </section>
+
+    <section id="landscape">
+      <div class="kicker">A moving target</div>
+      <h2>Model landscape and small-model choices</h2>
+      <p>Evidence snapshot checked on <strong>2026-10-17</strong>. “Best” depends on the task, hardware, license, resolution, and protocol. Candidates below are families to benchmark, not a universal rank. Leaderboards are dynamic; benchmark figures from model cards are often self-reported.</p>
+      <div class="card">
+        <div class="tabs" role="group" aria-label="Choose a model family">
+          <button type="button" class="model-tab" aria-pressed="true" data-model="qwen">Qwen3.5 / Qwen3-VL</button>
+          <button type="button" class="model-tab" aria-pressed="false" data-model="gemma">Gemma 4</button>
+          <button type="button" class="model-tab" aria-pressed="false" data-model="smol">SmolVLM2</button>
+          <button type="button" class="model-tab" aria-pressed="false" data-model="internvl">InternVL3.5</button>
+          <button type="button" class="model-tab" aria-pressed="false" data-model="vla">OpenVLA / SmolVLA</button>
+        </div>
+        <div id="modelDetail" class="model-detail" aria-live="polite">
+          <strong>General multimodal candidates:</strong> Qwen3.5 includes compact sizes; Qwen3-VL cards describe spatial/video/OCR capabilities. Compare task-sliced scores and verify hardware/runtime support. Do not infer action-policy ability from VQA performance.
+        </div>
+      </div>
+      <div class="grid" style="margin-top:16px">
+        <div class="card span-6"><h3>Small language models (text-only)</h3><p>Qwen3 0.6B/1.7B and SmolLM2 family sizes are useful for lightweight text tasks, instruction parsing, or baselines. Without a visual encoder, they do not directly see images.</p></div>
+        <div class="card span-6"><h3>Small multimodal models</h3><p>Gemma 4 E2B/E4B, Qwen3.5 4B, and SmolVLM2 offer image input at smaller scales. Check quantized latency and quality on your own camera data. Small does not imply safe, reliable, or real-time.</p></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3>Example reported vision scores from model cards</h3>
+        <p>Retrieved 2026-10-17. These values are model/vendor-reported examples, not one normalized head-to-head benchmark. Scores from different cards may use different prompts and evaluation code.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Checkpoint</th><th>Selected reported results</th><th>Read as</th></tr></thead>
+            <tbody>
+              <tr><td><a href="https://huggingface.co/Qwen/Qwen3.5-9B">Qwen3.5-9B</a></td><td>MMMU 78.4; MMMU-Pro 70.1; MathVista-mini 85.7; OCRBench 89.2</td><td>Compact general-purpose candidate in its model card's comparison set</td></tr>
+              <tr><td><a href="https://huggingface.co/Qwen/Qwen3.5-4B">Qwen3.5-4B</a></td><td>MMMU 77.6; MMMU-Pro 66.3; MathVista-mini 85.1; OCRBench 85.0</td><td>Smaller local experiment candidate; measure on your own workload</td></tr>
+              <tr><td><a href="https://huggingface.co/google/gemma-4-E4B-it">Gemma 4 31B / E4B</a></td><td>MMMU-Pro 76.9% / 52.6%; MATH-Vision 85.6% / 59.5%</td><td>Same-family scale trade-off; card protocol differs from Qwen's</td></tr>
+              <tr><td><a href="https://huggingface.co/HuggingFaceTB/SmolVLM2-2.2B-Instruct">SmolVLM2-2.2B</a></td><td>MMMU 42; MathVista 51.5; OCRBench 72.9; Video-MME 52.1</td><td>Efficiency-oriented image/video baseline</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="callout warn" style="margin-top:16px">Popularity/download counts are not performance scores. Compare the same benchmark version, prompts, image resolution, decoding rules, and evaluation code. Useful slices include MMMU, MathVista, OCRBench, ChartQA, TextVQA, DocVQA, Video-MME, plus your own deployment set.</div>
+    </section>
+
+    <section id="robotics">
+      <div class="kicker">Application path · SO-101</div>
+      <h2>Make the VLM a component, not the safety layer</h2>
+      <div class="grid">
+        <div class="card span-8">
+          <div class="flow" style="grid-template-columns:repeat(4,minmax(120px,1fr))">
+            <div class="node vision"><strong>Camera(s)</strong><small>RGB + timestamp</small></div>
+            <div class="node language"><strong>Task instruction</strong><small>Human-defined goal</small></div>
+            <div class="node fusion"><strong>Policy / VLA</strong><small>Also uses joint state</small></div>
+            <div class="node output"><strong>Safety controller</strong><small>Limits, watchdog, stop</small></div>
+          </div>
+          <p style="margin-top:18px">For the SO-101, first calibrate motor IDs, joint ranges, direction, zero offsets, camera and state timing. Record teleoperated demonstrations at episode granularity. Behavior cloning is a safer baseline than online exploration. A VLM can help interpret a scene or instruction, but a deterministic controller must validate all actions.</p>
+        </div>
+        <div class="card span-4">
+          <h3>Safe progression</h3>
+          <ol class="steps">
+            <li>Offline dataset and data-quality checks</li>
+            <li>Behavior cloning; held-out episodes</li>
+            <li>Simulation and latency/failure tests</li>
+            <li>Workspace limits, low speed, human E-stop</li>
+            <li>Only then consider constrained RL</li>
+          </ol>
+        </div>
+      </div>
+      <p class="callout safe">Never let a language model's free-form answer directly command servos. Clamp and validate actions; stop safely on stale observations, NaNs, deadline misses, communication faults, or unexpected contact.</p>
+    </section>
+
+    <section id="curriculum">
+      <div class="kicker">Learn by running code</div>
+      <h2>Notebook curriculum</h2>
+      <div class="card">
+        <ol class="steps">
+          <li><strong>00 — Study roadmap:</strong> prerequisites, sequence, goals and capstone.</li>
+          <li><strong>01 — Tensors, tokens, attention:</strong> patchification, embeddings, masks, cross-attention shapes.</li>
+          <li><strong>02 — Alignment and objectives:</strong> contrastive InfoNCE and shifted autoregressive loss.</li>
+          <li><strong>03 — Data and pretraining loop:</strong> leakage-safe split and manual optimization mechanics.</li>
+          <li><strong>04 — Tiny VLM from scratch:</strong> synthetic images, patch encoder, causal/cross-attention decoder, training and generation.</li>
+          <li><strong>05 — Fine-tuning and LoRA:</strong> low-rank adapter written in PyTorch and trained manually.</li>
+          <li><strong>06 — Evaluation and scaling:</strong> retrieval metrics, task slices, ablations and experiment records.</li>
+          <li><strong>07 — Models and small models:</strong> 2026 landscape evidence and how to compare model families.</li>
+          <li><strong>08 — SO-101, robotics and RL:</strong> VLA distinction, demonstrations, behavior cloning and safety gates.</li>
+          <li><strong>09 — Embeddings, attention and losses:</strong> token/visual projections, explicit Q/K/V score math, masks, gradient flow, cross-entropy, contrastive, matching and grounding objectives.</li>
+        </ol>
+        <p>All notebook examples use PyTorch, NumPy, pandas, and Python standard library only. The from-scratch VLM is deliberately tiny and does not download model weights.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer id="sources">
+    <div class="wrap">
+      <h2>Sources and further reading</h2>
+      <ul>
+        <li><a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need (Transformer)</a></li>
+        <li><a href="https://arxiv.org/abs/2103.00020">CLIP: Learning Transferable Visual Models From Natural Language Supervision</a></li>
+        <li><a href="https://arxiv.org/abs/2301.12597">BLIP-2: Bootstrapping Language-Image Pre-training</a></li>
+        <li><a href="https://arxiv.org/abs/2304.08485">LLaVA: Visual Instruction Tuning</a></li>
+        <li><a href="https://arxiv.org/abs/2106.09685">LoRA: Low-Rank Adaptation of Large Language Models</a></li>
+        <li><a href="notebooks/09_embeddings_attention_and_losses.ipynb">Runnable Notebook 09: embeddings, attention scores, and losses</a></li>
+        <li><a href="https://huggingface.co/spaces/opencompass/open_vlm_leaderboard">Open VLM Leaderboard (dynamic; protocol matters)</a></li>
+        <li><a href="https://huggingface.co/Qwen/Qwen3.5-4B">Qwen3.5 4B model card</a> · <a href="https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct">Qwen3-VL 8B model card</a></li>
+        <li><a href="https://huggingface.co/google/gemma-4-E4B-it">Gemma 4 E4B model card</a> · <a href="https://huggingface.co/HuggingFaceTB/SmolVLM2-2.2B-Instruct">SmolVLM2 model card</a></li>
+        <li><a href="https://github.com/OpenGVLab/InternVL">InternVL project</a></li>
+        <li><a href="https://openvla.github.io/">OpenVLA project</a> · <a href="https://arxiv.org/abs/2506.01844">SmolVLA paper</a></li>
+        <li><a href="https://huggingface.co/docs/lerobot/so101">LeRobot SO-101 setup docs</a></li>
+      </ul>
+      <p class="fine">This educational page is not a safety certification, model benchmark, or robotics deployment manual. Model families and documentation change; check the linked cards and licenses before use. For current model comparisons, record your exact protocol and test on representative data.</p>
+      <p class="fine">Designed as a standalone GitHub Pages entry point. Interactive elements use local HTML/CSS/JavaScript only; no external scripts, analytics, or libraries.</p>
+    </div>
+  </footer>
+  <script>
+    "use strict";
+    const patchRange = document.getElementById("patchRange");
+    const patchGrid = document.getElementById("patchGrid");
+    const patchValue = document.getElementById("patchValue");
+    const patchCount = document.getElementById("patchCount");
+    const pairCount = document.getElementById("pairCount");
+    const workBar = document.getElementById("workBar");
+
+    function updatePatchDemo() {
+      const patchSide = Number(patchRange.value);
+      const perSide = 224 / patchSide;
+      const count = perSide * perSide;
+      patchValue.textContent = patchSide;
+      patchCount.textContent = count.toLocaleString();
+      pairCount.textContent = (count * count).toLocaleString();
+      patchGrid.style.gridTemplateColumns = `repeat(${perSide}, 1fr)`;
+      patchGrid.replaceChildren(...Array.from({ length: count }, () => document.createElement("i")));
+      workBar.style.width = `${Math.max(2, (count * count / 784 ** 2) * 100)}%`;
+    }
+    patchRange.addEventListener("input", updatePatchDemo);
+    updatePatchDemo();
+
+    const attentionSharpness = document.getElementById("attentionSharpness");
+    const attentionRows = document.getElementById("attentionRows");
+    const patchNames = ["top-left patch", "center patch", "bottom-right patch"];
+    const query = [1, 0];
+    const keys = [[1, 0], [0, 1], [-1, 0]];
+    const values = [0.2, 1.0, -0.4];
+    function updateAttentionDemo() {
+      const multiplier = Number(attentionSharpness.value);
+      const raw = keys.map((key) => query.reduce((sum, value, i) => sum + value * key[i], 0));
+      const scaled = raw.map((score) => score / Math.sqrt(query.length) * multiplier);
+      const exps = scaled.map((score) => Math.exp(score - Math.max(...scaled)));
+      const denominator = exps.reduce((sum, value) => sum + value, 0);
+      const weights = exps.map((value) => value / denominator);
+      const context = weights.reduce((sum, weight, i) => sum + weight * values[i], 0);
+      attentionRows.replaceChildren(...weights.map((weight, i) => {
+        const row = document.createElement("tr");
+        const cells = [
+          patchNames[i],
+          raw[i].toFixed(2),
+          scaled[i].toFixed(3),
+          `${(weight * 100).toFixed(1)}%`,
+          values[i].toFixed(2)
+        ];
+        cells.forEach((value, index) => {
+          const cell = document.createElement("td");
+          if (index === 3) {
+            cell.innerHTML = `<div>${value}</div><div class="weight-track"><span style="width:${(weight * 100).toFixed(1)}%"></span></div>`;
+          } else {
+            cell.textContent = value;
+          }
+          row.appendChild(cell);
+        });
+        return row;
+      }));
+      document.getElementById("sharpnessValue").textContent = `${multiplier.toFixed(1)}×`;
+      document.getElementById("attentionContext").textContent = context.toFixed(3);
+      document.getElementById("attentionWeightSum").textContent = weights.reduce((sum, weight) => sum + weight, 0).toFixed(3);
+    }
+    attentionSharpness.addEventListener("input", updateAttentionDemo);
+    updateAttentionDemo();
+
+    const targetProbability = document.getElementById("targetProbability");
+    function updateLossDemo() {
+      const correctProbability = Number(targetProbability.value);
+      const otherProbability = (1 - correctProbability) / 3;
+      const loss = -Math.log(correctProbability);
+      document.getElementById("targetProbabilityValue").textContent = correctProbability.toFixed(2);
+      document.getElementById("tokenLossValue").textContent = loss.toFixed(3);
+      document.getElementById("correctGradientValue").textContent = (correctProbability - 1).toFixed(3);
+      const gradientRows = document.getElementById("gradientRows");
+      const gradients = [
+        { name: "correct token", probability: correctProbability, gradient: correctProbability - 1 },
+        { name: "each incorrect token", probability: otherProbability, gradient: otherProbability }
+      ];
+      gradientRows.replaceChildren(...gradients.map(({ name, probability, gradient }) => {
+        const row = document.createElement("div");
+        row.className = "gradient-row";
+        const label = document.createElement("code");
+        label.textContent = name;
+        const text = document.createElement("span");
+        text.textContent = `p = ${probability.toFixed(3)}  →  ∂L/∂z = ${gradient.toFixed(3)}`;
+        row.append(label, text);
+        return row;
+      }));
+    }
+    targetProbability.addEventListener("input", updateLossDemo);
+    updateLossDemo();
+
+    const modelDetails = {
+      qwen: "<strong>General multimodal candidates:</strong> Qwen3.5 includes compact sizes; Qwen3-VL cards describe spatial, video and OCR capabilities. Compare task-sliced scores and verify hardware/runtime support. Do not infer action-policy ability from VQA performance.",
+      gemma: "<strong>Edge-to-server family:</strong> Gemma 4 includes E2B/E4B, 12B, 26B A4B MoE and 31B sizes. Its card describes image input across the family and audio on smaller variants. Read effective-vs-total parameter notes and check the license for your use.",
+      smol: "<strong>Compact image/video understanding:</strong> SmolVLM2 family sizes are designed for resource-conscious inference. The model card reports task-specific results, but smaller models trade capacity for memory/latency. Measure on your own camera, lighting, and video.",
+      internvl: "<strong>High-capacity open VLM family:</strong> InternVL3.5 is a candidate for general visual understanding and high-resolution tasks. Compare exact checkpoint, tiling/resolution, license, and an independent protocol before calling it a winner.",
+      vla: "<strong>Action-producing systems, not just VLMs:</strong> OpenVLA is a 7B research VLA trained on robot demonstrations; SmolVLA emphasizes affordable, chunked action prediction. Verify action/state compatibility, robot embodiment, training data, inference rate, and safety before any real-world test."
+    };
+    const tabs = document.querySelectorAll(".model-tab");
+    const detail = document.getElementById("modelDetail");
+    tabs.forEach((tab) => tab.addEventListener("click", () => {
+      tabs.forEach((item) => item.setAttribute("aria-pressed", String(item === tab)));
+      detail.innerHTML = modelDetails[tab.dataset.model];
+    }));
+  </script>
+</body>
+</html>
